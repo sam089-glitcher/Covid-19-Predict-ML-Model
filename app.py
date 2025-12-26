@@ -85,8 +85,16 @@ if section == "🌍 Country-wise World Map":
         template="plotly_dark",
         title="🌍 COVID-19 Cases (Country-wise)"
     )
+    fig.update_geos(
+    visible=False,
+    projection_scale=1.2   # zooms the map
+)
 
-    fig.update_geos(visible=False)
+fig.update_layout(
+    height=750,
+    margin=dict(l=0, r=0, t=40, b=0)
+)
+
     st.plotly_chart(fig, width="stretch")
 
 # =========================================================
