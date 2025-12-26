@@ -1,13 +1,17 @@
+# =========================================================
+# LINE 1–10: IMPORTS
+# =========================================================
 import pandas as pd
 import numpy as np
 import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
 from prophet import Prophet
+import pycountry
 
-# =======================
-# PAGE CONFIG
-# =======================
+# =========================================================
+# LINE 12–20: STREAMLIT PAGE CONFIG
+# =========================================================
 st.set_page_config(
     page_title="COVID-19 Advanced Analytics",
     page_icon="🌍",
@@ -15,11 +19,11 @@ st.set_page_config(
 )
 
 st.title("🌍 COVID-19 Advanced Visualization & Forecasting")
-st.markdown("Using multiple datasets, interactive maps, timelines & AI forecasting")
+st.markdown("Interactive dashboards using multiple datasets + AI forecasting")
 
-# =======================
-# LOAD DATA (CACHED)
-# =======================
+# =========================================================
+# LINE 22–35: LOAD DATA (CACHED)
+# =========================================================
 @st.cache_data
 def load_data():
     df0 = pd.read_csv("country_wise_latest.csv")
@@ -32,9 +36,9 @@ def load_data():
 
 df0, df1, df2, df3, df4, df5 = load_data()
 
-# =======================
-# SIDEBAR NAVIGATION
-# =======================
+# =========================================================
+# LINE 37–45: SIDEBAR NAVIGATION
+# =========================================================
 section = st.sidebar.radio(
     "Navigate",
     [
@@ -48,12 +52,24 @@ section = st.sidebar.radio(
     ]
 )
 
-# =======================
-# 1️⃣ COUNTRY-WISE MAP
-# =======================
+# =========================================================
+# LINE 47–55: ISO-3 CONVERSION FUNCTION  ⭐ IMPORTANT
+# =========================================================
+def get_iso3(country):
+    try:
+        return pycountry.countries.lookup(country).alpha_3
+    except:
+        return None
+
+# =========================================================
+# LINE 57–82: COUNTRY-WISE WORLD MAP
+# =========================================================
 if section == "🌍 Country-wise World Map":
     world = df0[["Country/Region", "Confirmed"]].copy()
     world.columns = ["Country", "Cases"]
+
+    world["ISO3"] = world["Country"].apply(get_iso3)
+    world = world.dropna()
 
     world["Cases Range"] = pd.cut(
         world["Cases"],
@@ -63,19 +79,19 @@ if section == "🌍 Country-wise World Map":
 
     fig = px.choropleth(
         world,
-        locations="Country",
-        locationmode="country names",
+        locations="ISO3",
         color="Cases Range",
-        title="🌍 COVID-19 Cases (Country Wise)",
-        template="plotly_dark"
+        projection="mercator",
+        template="plotly_dark",
+        title="🌍 COVID-19 Cases (Country-wise)"
     )
 
     fig.update_geos(visible=False)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
-# =======================
-# 2️⃣ GLOBAL TIMELINE
-# =======================
+# =========================================================
+# LINE 84–102: GLOBAL TIMELINE
+# =========================================================
 elif section == "📈 Global Timeline":
     fig = go.Figure()
 
@@ -90,11 +106,11 @@ elif section == "📈 Global Timeline":
         yaxis_title="Count"
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
-# =======================
-# 3️⃣ WORLDOMETER MAP
-# =======================
+# =========================================================
+# LINE 104–126: WORLDOMETER MAP
+# =========================================================
 elif section == "🗺️ Worldometer Severity Map":
     world = df5[["Country/Region", "TotalCases"]].copy()
     world.columns = ["Country", "Cases"]
@@ -106,28 +122,24 @@ elif section == "🗺️ Worldometer Severity Map":
         .astype(float)
     )
 
-    world["Severity"] = pd.cut(
-        world["Cases"],
-        [-1, 5e4, 2e5, 8e5, 1.5e6, 1e9],
-        labels=["Low", "Moderate", "High", "Very High", "Extreme"]
-    )
+    world["ISO3"] = world["Country"].apply(get_iso3)
+    world = world.dropna()
 
     fig = px.choropleth(
         world,
-        locations="Country",
-        locationmode="country names",
-        color="Severity",
-        color_discrete_sequence=px.colors.sequential.Reds,
-        title="🌍 Global COVID-19 Severity (Worldometer)",
-        template="plotly_dark"
+        locations="ISO3",
+        color="Cases",
+        color_continuous_scale="Reds",
+        template="plotly_dark",
+        title="🌍 Global COVID-19 Severity (Worldometer)"
     )
 
     fig.update_geos(visible=False)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
-# =======================
-# 4️⃣ USA HEATMAP
-# =======================
+# =========================================================
+# LINE 128–142: USA HEATMAP
+# =========================================================
 elif section == "🇺🇸 USA Heatmap":
     fig = px.choropleth(
         df4,
@@ -136,15 +148,15 @@ elif section == "🇺🇸 USA Heatmap":
         color="Confirmed",
         scope="usa",
         color_continuous_scale="Inferno",
-        title="🇺🇸 COVID-19 Cases Across USA",
-        template="plotly_dark"
+        template="plotly_dark",
+        title="🇺🇸 COVID-19 Heatmap (USA)"
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
-# =======================
-# 5️⃣ TOP COUNTRIES
-# =======================
+# =========================================================
+# LINE 144–158: TOP COUNTRIES ANALYSIS
+# =========================================================
 elif section == "🔥 Top Countries Analysis":
     df0["Death Rate"] = df0["Deaths"] / df0["Confirmed"]
     top = df0.sort_values("Confirmed", ascending=False).head(15)
@@ -155,15 +167,15 @@ elif section == "🔥 Top Countries Analysis":
         y="Confirmed",
         color="Death Rate",
         color_continuous_scale="Reds",
-        title="🔥 Top 15 Countries: Cases vs Death Rate",
-        template="plotly_dark"
+        template="plotly_dark",
+        title="🔥 Top 15 Countries: Cases vs Death Rate"
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
-# =======================
-# 6️⃣ ANIMATED SPREAD
-# =======================
+# =========================================================
+# LINE 160–178: ANIMATED WORLD SPREAD
+# =========================================================
 elif section == "⏳ Animated World Spread":
     df3["Date"] = pd.to_datetime(df3["Date"])
 
@@ -174,16 +186,16 @@ elif section == "⏳ Animated World Spread":
         color="Confirmed",
         animation_frame=df3["Date"].dt.strftime("%Y-%m-%d"),
         color_continuous_scale="Reds",
-        title="⏳ COVID-19 Spread Over Time",
-        template="plotly_dark"
+        template="plotly_dark",
+        title="⏳ COVID-19 Spread Over Time"
     )
 
     fig.update_geos(visible=False)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
-# =======================
-# 7️⃣ AI FORECAST
-# =======================
+# =========================================================
+# LINE 180–210: AI FORECAST (PROPHET)
+# =========================================================
 elif section == "🔮 AI Forecast":
     cases = df1.groupby("Date")["Confirmed"].sum().reset_index()
     cases["Date"] = pd.to_datetime(cases["Date"])
@@ -201,29 +213,14 @@ elif section == "🔮 AI Forecast":
 
     fig = go.Figure()
 
+    fig.add_trace(go.Scatter(x=forecast["ds"], y=forecast["yhat"], name="Prediction"))
     fig.add_trace(go.Scatter(
-        x=forecast["ds"],
-        y=forecast["yhat"],
-        name="Prediction",
-        line=dict(color="cyan")
+        x=forecast["ds"], y=forecast["yhat_upper"],
+        fill=None, mode="lines", showlegend=False
     ))
-
     fig.add_trace(go.Scatter(
-        x=forecast["ds"],
-        y=forecast["yhat_upper"],
-        fill=None,
-        mode="lines",
-        line=dict(color="gray"),
-        showlegend=False
-    ))
-
-    fig.add_trace(go.Scatter(
-        x=forecast["ds"],
-        y=forecast["yhat_lower"],
-        fill="tonexty",
-        mode="lines",
-        line=dict(color="gray"),
-        name="Confidence Interval"
+        x=forecast["ds"], y=forecast["yhat_lower"],
+        fill="tonexty", mode="lines", name="Confidence Interval"
     ))
 
     fig.update_layout(
@@ -231,4 +228,4 @@ elif section == "🔮 AI Forecast":
         template="plotly_dark"
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
