@@ -94,8 +94,7 @@ fig.update_layout(
     height=750,
     margin=dict(l=0, r=0, t=40, b=0)
 )
-
-    st.plotly_chart(fig, width="stretch")
+st.plotly_chart(fig, width="stretch")
 
 # =========================================================
 # LINE 84–102: GLOBAL TIMELINE
